@@ -13,6 +13,7 @@ namespace Dali
             rmt_channel_handle_t _channelHandle;
             rmt_tx_channel_config_t _channelConfig;
             rmt_transmit_config_t _transmitConfig;
+            rmt_encoder_handle_t _copyEncoder;
 
           public:
             Rmt(DataLinkLayer *dll, uint pin);

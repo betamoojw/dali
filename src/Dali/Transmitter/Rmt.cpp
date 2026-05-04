@@ -23,6 +23,11 @@ namespace Dali
 
             ESP_ERROR_CHECK(rmt_new_tx_channel(&_channelConfig, &_channelHandle));
             ESP_ERROR_CHECK(rmt_enable(_channelHandle));
+
+            // Copy-Encoder einmalig anlegen und wiederverwenden — vorher pro Frame neu
+            // erzeugt, ohne rmt_del_encoder = ~32 B Heap-Leak je gesendetem Telegramm.
+            rmt_copy_encoder_config_t copy_encoder_config = {};
+            ESP_ERROR_CHECK(rmt_new_copy_encoder(&copy_encoder_config, &_copyEncoder));
         }
 
         void Rmt::transmitFrame(Frame frame)
@@ -32,13 +37,8 @@ namespace Dali
             rmt_symbol_word_t symbols[fullbits]; // 1 Startbit + 16 Bits * 2 Symbole + 2 Stopbits
             encode(frame, symbols);
 
-            // RMT-Copy-Encoder erstellen
-            rmt_copy_encoder_config_t copy_encoder_config = {};
-            rmt_encoder_handle_t copy_encoder;
-            ESP_ERROR_CHECK(rmt_new_copy_encoder(&copy_encoder_config, &copy_encoder));
-
-            // Symbole senden
-            ESP_ERROR_CHECK(rmt_transmit(_channelHandle, copy_encoder, symbols, sizeof(symbols), &_transmitConfig));
+            // Symbole senden — nutzt den im Konstruktor erzeugten Copy-Encoder
+            ESP_ERROR_CHECK(rmt_transmit(_channelHandle, _copyEncoder, symbols, sizeof(symbols), &_transmitConfig));
 
             transmitting(true);
         }
